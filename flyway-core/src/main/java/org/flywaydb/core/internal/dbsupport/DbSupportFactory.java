@@ -17,6 +17,7 @@ package org.flywaydb.core.internal.dbsupport;
 
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.internal.dbsupport.db2.DB2DbSupport;
+import org.flywaydb.core.internal.dbsupport.db2iseries.DB2iseriesDbSupport;
 import org.flywaydb.core.internal.dbsupport.db2zos.DB2zosDbSupport;
 import org.flywaydb.core.internal.dbsupport.derby.DerbyDbSupport;
 import org.flywaydb.core.internal.dbsupport.h2.H2DbSupport;
@@ -101,11 +102,16 @@ public class DbSupportFactory {
             return new PostgreSQLDbSupport(connection);
         }
         if (databaseProductName.startsWith("DB2")) {
-			if (getDatabaseProductVersion(connection).startsWith("DSN")){
-				return new DB2zosDbSupport(connection);
-			} else {
-				return new DB2DbSupport(connection);
-			}
+            //Database: jdbc:as400:192.168.1.10 (DB2 UDB for AS/400 7.1)
+            return new DB2iseriesDbSupport(connection);
+
+//            if (getDatabaseProductVersion(connection).startsWith("DSN")){
+//                return new DB2zosDbSupport(connection);
+//            } else if (getDatabaseProductVersion(connection).startsWith("DSN")){
+//                return new DB2zosDbSupport(connection);
+//            } else {
+//                return new DB2DbSupport(connection);
+//            }
         }
         if (databaseProductName.startsWith("Vertica")) {
             return new VerticaDbSupport(connection);

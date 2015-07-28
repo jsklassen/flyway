@@ -75,6 +75,9 @@ public class MetaDataTableImpl implements MetaDataTable {
      * Creates the metatable if it doesn't exist, upgrades it if it does.
      */
     private void createIfNotExists() {
+        //TODO: reconcile
+        //return;
+
         if (table.exists()) {
             return;
         }

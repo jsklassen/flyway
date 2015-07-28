@@ -1027,22 +1027,25 @@ public class Flyway {
                         if (baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
                             new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline();
                         }
-                    } else {
-                        if (nonEmptySchemas.size() == 1) {
-                            Schema schema = nonEmptySchemas.get(0);
-                            //Check whether we only have an empty metadata table in an otherwise empty schema
-                            if (schema.allTables().length != 1 || !schema.getTable(table).exists()) {
-                                throw new FlywayException("Found non-empty schema " + schema
-                                        + " without metadata table! Use baseline()"
-                                        + " or set baselineOnMigrate to true to initialize the metadata table.");
-                            }
-                        } else {
-                            throw new FlywayException("Found non-empty schemas "
-                                    + StringUtils.collectionToCommaDelimitedString(nonEmptySchemas)
-                                    + " without metadata table! Use baseline()"
-                                    + " or set baselineOnMigrate to true to initialize the metadata table.");
-                        }
                     }
+                    //TODO: reconcile
+
+//                    else {
+//                        if (nonEmptySchemas.size() == 1) {
+//                            Schema schema = nonEmptySchemas.get(0);
+//                            //Check whether we only have an empty metadata table in an otherwise empty schema
+//                            if (schema.allTables().length != 1 || !schema.getTable(table).exists()) {
+//                                throw new FlywayException("Found non-empty schema " + schema
+//                                        + " without metadata table! Use baseline()"
+//                                        + " or set baselineOnMigrate to true to initialize the metadata table.");
+//                            }
+//                        } else {
+//                            throw new FlywayException("Found non-empty schemas "
+//                                    + StringUtils.collectionToCommaDelimitedString(nonEmptySchemas)
+//                                    + " without metadata table! Use baseline()"
+//                                    + " or set baselineOnMigrate to true to initialize the metadata table.");
+//                        }
+//                    }
                 }
 
                 DbSupport dbSupportUserObjects = DbSupportFactory.createDbSupport(connectionUserObjects, false);
@@ -1200,8 +1203,10 @@ public class Flyway {
      * @throws FlywayException when the metadata table repair failed.
      */
     public void repair() throws FlywayException {
-        execute(new Command<Void>() {
-            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas) {
+        execute(new Command<Void>()
+        {
+            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas)
+            {
                 MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
                 MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport, schemas[0].getTable(table));
                 new DbRepair(dbSupport, connectionMetaDataTable, migrationResolver, metaDataTable, callbacks).repair();
