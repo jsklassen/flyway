@@ -40,7 +40,10 @@ public class DB2iseriesSqlStatementBuilder extends SqlStatementBuilder {
             statementStart += " ";
         }
 
-        if (statementStart.startsWith("CREATE FUNCTION")
+        //line starts with begin, will this work?
+        if (statementStart.startsWith("BEGIN ATOMIC")
+                || statementStart.startsWith("BEGIN NOT ATOMIC")
+                || statementStart.startsWith("CREATE FUNCTION")
                 || statementStart.startsWith("CREATE PROCEDURE")
                 || statementStart.startsWith("CREATE TRIGGER")
                 || statementStart.startsWith("CREATE OR REPLACE FUNCTION")
