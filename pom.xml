@@ -26,7 +26,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.flywaydb</groupId>
     <artifactId>flyway-parent</artifactId>
-    <version>3.2.1-iseries-SNAPSHOT</version>
+    <version>3.2.2-iseries-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>
@@ -94,6 +94,11 @@
             <!--<id>flyway-repo</id>-->
             <!--<url>s3://flyway-repo/release</url>-->
         <!--</repository>-->
+        <repository>
+            <id>linuxutil01</id>
+            <name>linuxutil01-releases</name>
+            <url>http://192.168.1.33:8081/artifactory/ext-release-local</url>
+        </repository>
     </repositories>
 
     <properties>

@@ -45,8 +45,8 @@ public class DB2iseriesTable extends Table {
 
     @Override
     protected boolean doExists() throws SQLException {
-        int objectCount = jdbcTemplate.queryForInt("select count(*) from qsys2.systables where table_schema = '" + schema + "' and table_name = '" + name + "'");
-              return objectCount == 0;
+        int objectCount = jdbcTemplate.queryForInt("select count(*) from qsys2.systables where upper(table_schema) = upper('" + schema + "') and upper(table_name) = upper('" + name + "')" );
+              return objectCount == 1;
 //        return exists(null, schema, name);
     }
 

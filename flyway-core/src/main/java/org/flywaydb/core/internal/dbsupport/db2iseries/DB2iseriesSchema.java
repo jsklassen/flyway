@@ -43,17 +43,16 @@ public class DB2iseriesSchema extends Schema<DB2iseriesDbSupport> {
 
     @Override
     protected boolean doExists() throws SQLException {
-
-        return jdbcTemplate.queryForInt("SELECT COUNT(*) FROM qsys2.schemata WHERE schema_name=?", name) > 0;
+        return jdbcTemplate.queryForInt("SELECT COUNT(*) FROM qsys2.schemata WHERE upper(schema_name)=upper(?)", name) > 0;
     }
 
     @Override
     protected boolean doEmpty() throws SQLException {
-        int objectCount = jdbcTemplate.queryForInt("select count(*) from qsys2.systables where system_table_schema = ?", name);
-        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.systables where table_schema = ?", name);
-        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.syssequences where sequence_schema = ?", name);
-        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.sysindexes where table_schema = ?", name);
-        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.sysroutines where specific_schema = ?", name);
+        int objectCount = jdbcTemplate.queryForInt("select count(*) from qsys2.systables where upper(system_table_schema) = upper(?)", name);
+        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.systables where upper(table_schema) = upper(?)", name);
+        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.syssequences where upper(sequence_schema) = upper(?)", name);
+        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.sysindexes where upper(table_schema) = upper(?)", name);
+        objectCount += jdbcTemplate.queryForInt("select count(*) from qsys2.sysroutines where upper(specific_schema) = upper(?)", name);
         return objectCount == 0;
     }
 

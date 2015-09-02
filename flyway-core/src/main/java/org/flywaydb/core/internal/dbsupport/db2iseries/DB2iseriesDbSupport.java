@@ -78,7 +78,8 @@ public class DB2iseriesDbSupport extends DbSupport {
 
     @Override
     public String doQuote(String identifier) {
-        return "\"" + identifier + "\"";
+//        return "\"" + identifier + "\"";
+        return identifier;
     }
 
     @Override
