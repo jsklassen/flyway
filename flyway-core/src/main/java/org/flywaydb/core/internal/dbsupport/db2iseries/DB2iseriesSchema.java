@@ -40,6 +40,10 @@ public class DB2iseriesSchema extends Schema<DB2iseriesDbSupport> {
         super(jdbcTemplate, dbSupport, name);
     }
 
+    @Override
+    public String getName() {
+        return name == null ? null : name.toUpperCase();
+    }
 
     @Override
     protected boolean doExists() throws SQLException {

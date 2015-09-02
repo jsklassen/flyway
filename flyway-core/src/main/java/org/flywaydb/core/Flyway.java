@@ -30,12 +30,8 @@ import org.flywaydb.core.api.MigrationInfoService;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.callback.FlywayCallback;
 import org.flywaydb.core.api.resolver.MigrationResolver;
-import org.flywaydb.core.internal.command.DbClean;
-import org.flywaydb.core.internal.command.DbInit;
-import org.flywaydb.core.internal.command.DbMigrate;
-import org.flywaydb.core.internal.command.DbRepair;
-import org.flywaydb.core.internal.command.DbSchemas;
-import org.flywaydb.core.internal.command.DbValidate;
+import org.flywaydb.core.internal.callback.SqlScriptFlywayCallback;
+import org.flywaydb.core.internal.command.*;
 import org.flywaydb.core.internal.command.DbValidate;
 import org.flywaydb.core.internal.dbsupport.DbSupport;
 import org.flywaydb.core.internal.dbsupport.DbSupportFactory;
@@ -1064,7 +1060,7 @@ public class Flyway {
 
                         if(baselineOnMigrate || nonEmptySchemas.isEmpty()) {
                             if(baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
-                                new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).init();
+                                new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline();
                             }
                         } else {
                             if(nonEmptySchemas.size() == 1) {
