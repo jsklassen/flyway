@@ -16,17 +16,26 @@
 package org.flywaydb.core;
 
 
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.api.MigrationInfoService;
 import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.callback.FlywayCallback;
 import org.flywaydb.core.api.resolver.MigrationResolver;
-import org.flywaydb.core.internal.callback.SqlScriptFlywayCallback;
-import org.flywaydb.core.internal.command.DbBaseline;
 import org.flywaydb.core.internal.command.DbClean;
+import org.flywaydb.core.internal.command.DbInit;
 import org.flywaydb.core.internal.command.DbMigrate;
 import org.flywaydb.core.internal.command.DbRepair;
 import org.flywaydb.core.internal.command.DbSchemas;
+import org.flywaydb.core.internal.command.DbValidate;
 import org.flywaydb.core.internal.command.DbValidate;
 import org.flywaydb.core.internal.dbsupport.DbSupport;
 import org.flywaydb.core.internal.dbsupport.DbSupportFactory;
@@ -45,14 +54,12 @@ import org.flywaydb.core.internal.util.jdbc.JdbcUtils;
 import org.flywaydb.core.internal.util.logging.Log;
 import org.flywaydb.core.internal.util.logging.LogFactory;
 
-import javax.sql.DataSource;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-
 /**
  * This is the centre point of Flyway, and for most users, the only class they will ever have to deal with.
  * <p>
@@ -95,6 +102,11 @@ public class Flyway {
      * </ul>
      */
     private String[] schemaNames = new String[0];
+
+    /**
+     * Will allow multiple schemas to be migrated at once
+     */
+    private boolean multipleDbMode = false;
 
     /**
      * <p>The name of the schema metadata table that will be used by Flyway. (default: schema_version)</p><p> By default
@@ -294,6 +306,14 @@ public class Flyway {
      */
     public String[] getSchemas() {
         return schemaNames;
+    }
+
+    /**
+     * Get whether or not the multiple db mode is active or not  
+     * @return {@code true} if multiple db mode is active {@code false} if it is not enabled (default: {@code false})
+     */
+    public boolean isMultipleDbMode() {
+        return multipleDbMode;
     }
 
     /**
@@ -632,6 +652,15 @@ public class Flyway {
     public void setSchemas(String... schemas) {
         this.schemaNames = schemas;
     }
+
+    /**
+     * Set whether the multiple db mode is active or not
+     * @param multipleDbMode {@code true} to enable multiple db mode {@code false} to disable
+     */
+    public void setMultipleDbMode(boolean multipleDbMode) {
+        this.multipleDbMode = multipleDbMode;
+    }
+
 
     /**
      * <p>Sets the name of the schema metadata table that will be used by Flyway.</p><p> By default (single-schema mode)
@@ -1004,67 +1033,79 @@ public class Flyway {
      */
     public int migrate() throws FlywayException {
         return execute(new Command<Integer>() {
+
             public Integer execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas) {
-                MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport, schemas[0].getTable(table));
 
-                MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
-                if (validateOnMigrate) {
-                    doValidate(connectionMetaDataTable, connectionUserObjects, migrationResolver, metaDataTable,
-                            schemas, true);
-                }
+                int successful = 0;
+                for(Schema schema : schemas) {
 
-                new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create();
+                    MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport,schema.getTable(table));
+                    MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
+                    if(validateOnMigrate) {
+                        doValidate(connectionMetaDataTable,connectionUserObjects,migrationResolver,metaDataTable,schemas,true);
+                    }
 
-                if (!metaDataTable.hasSchemasMarker() && !metaDataTable.hasBaselineMarker() && !metaDataTable.hasAppliedMigrations()) {
-                    List<Schema> nonEmptySchemas = new ArrayList<Schema>();
-                    for (Schema schema : schemas) {
-                        if (!schema.empty()) {
+                    new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create();
+
+                    if(!metaDataTable.hasSchemasMarker() && !metaDataTable.hasBaselineMarker() && !metaDataTable.hasAppliedMigrations()) {
+                        List<Schema> nonEmptySchemas = new ArrayList<Schema>();
+
+                        if(!schema.empty()) {
                             nonEmptySchemas.add(schema);
                         }
-                    }
 
-                    if (baselineOnMigrate || nonEmptySchemas.isEmpty()) {
-                        if (baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
-                            new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline();
+                        if(!multipleDbMode) {
+                            for(int i=1,l=schemas.length;i<l;++i) {
+                                if(!schema.empty()) {
+                                    nonEmptySchemas.add(schemas[i]);
+                                }
+                            }
+                        }
+
+                        if(baselineOnMigrate || nonEmptySchemas.isEmpty()) {
+                            if(baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
+                                new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).init();
+                            }
+                        } else {
+                            if(nonEmptySchemas.size() == 1) {
+                                Schema s = nonEmptySchemas.get(0);
+                                if(schema.allTables().length != 1 || !schema.getTable(table).exists()) {
+                                    throw new FlywayException("Found non-empty schema " + schema
+                                            + " without metadata table! Use baseline()"
+                                            + " or set baselineOnMigrate to true to initialize the metadata table.");
+                                }
+                            } else {
+                                throw new FlywayException("Found non-empty schemas "
+                                        + StringUtils.collectionToCommaDelimitedString(nonEmptySchemas)
+                                        + " without metadata table! Use baseline()"
+                                        + " or set baselineOnMigrate to true to initialize the metadata table.");
+                            }
                         }
                     }
-                    //TODO: reconcile
 
-//                    else {
-//                        if (nonEmptySchemas.size() == 1) {
-//                            Schema schema = nonEmptySchemas.get(0);
-//                            //Check whether we only have an empty metadata table in an otherwise empty schema
-//                            if (schema.allTables().length != 1 || !schema.getTable(table).exists()) {
-//                                throw new FlywayException("Found non-empty schema " + schema
-//                                        + " without metadata table! Use baseline()"
-//                                        + " or set baselineOnMigrate to true to initialize the metadata table.");
-//                            }
-//                        } else {
-//                            throw new FlywayException("Found non-empty schemas "
-//                                    + StringUtils.collectionToCommaDelimitedString(nonEmptySchemas)
-//                                    + " without metadata table! Use baseline()"
-//                                    + " or set baselineOnMigrate to true to initialize the metadata table.");
-//                        }
-//                    }
-                }
+                    DbSupport dbSupportUserObjects = DbSupportFactory.createDbSupport(connectionUserObjects, false);
+                    Schema originalSchemaUserObjects = dbSupportUserObjects.getCurrentSchema();
+                    boolean schemaChange = !schema.equals(originalSchemaUserObjects);
+                    if(schemaChange) {
+                        dbSupportUserObjects.setCurrentSchema(schema);
+                    }
 
-                DbSupport dbSupportUserObjects = DbSupportFactory.createDbSupport(connectionUserObjects, false);
-                Schema originalSchemaUserObjects = dbSupportUserObjects.getCurrentSchema();
-                boolean schemaChange = !schemas[0].equals(originalSchemaUserObjects);
-                if (schemaChange) {
-                    dbSupportUserObjects.setCurrentSchema(schemas[0]);
-                }
+                    DbMigrate dbMigrate = new DbMigrate(connectionMetaDataTable,connectionUserObjects,dbSupport,metaDataTable,
+                            schema, migrationResolver, target, ignoreFailedFutureMigration, outOfOrder, callbacks);
 
-                DbMigrate dbMigrate =
-                        new DbMigrate(connectionMetaDataTable, connectionUserObjects, dbSupport, metaDataTable,
-                                schemas[0], migrationResolver, target, ignoreFailedFutureMigration, outOfOrder, callbacks);
-                try {
-                    return dbMigrate.migrate();
-                } finally {
-                    if (schemaChange) {
-                        dbSupportUserObjects.setCurrentSchema(originalSchemaUserObjects);
+                    try {
+                        if(multipleDbMode) {
+                            successful += dbMigrate.migrate();
+                        } else {
+                            return dbMigrate.migrate();
+                        }
+                    } finally {
+                        if(schemaChange) {
+                            dbSupportUserObjects.setCurrentSchema(originalSchemaUserObjects);
+                        }
                     }
                 }
+                return successful;
             }
         });
     }
@@ -1203,10 +1244,8 @@ public class Flyway {
      * @throws FlywayException when the metadata table repair failed.
      */
     public void repair() throws FlywayException {
-        execute(new Command<Void>()
-        {
-            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas)
-            {
+        execute(new Command<Void>() {
+            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas) {
                 MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
                 MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport, schemas[0].getTable(table));
                 new DbRepair(dbSupport, connectionMetaDataTable, migrationResolver, metaDataTable, callbacks).repair();
@@ -1291,6 +1330,10 @@ public class Flyway {
         String schemasProp = properties.getProperty("flyway.schemas");
         if (schemasProp != null) {
             setSchemas(StringUtils.tokenizeToStringArray(schemasProp, ","));
+        }
+        String multipleDbModeProp = properties.getProperty("flyway.multipleDbModeProp");
+        if(multipleDbModeProp != null) {
+            setMultipleDbMode(Boolean.parseBoolean(multipleDbModeProp));
         }
         String tableProp = properties.getProperty("flyway.table");
         if (tableProp != null) {

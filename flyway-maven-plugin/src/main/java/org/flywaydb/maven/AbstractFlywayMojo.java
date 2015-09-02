@@ -15,6 +15,13 @@
  */
 package org.flywaydb.maven;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.Map;
+import java.util.Properties;
+
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -32,13 +39,6 @@ import org.sonatype.plexus.components.cipher.PlexusCipherException;
 import org.sonatype.plexus.components.sec.dispatcher.DefaultSecDispatcher;
 import org.sonatype.plexus.components.sec.dispatcher.SecDispatcher;
 import org.sonatype.plexus.components.sec.dispatcher.SecDispatcherException;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.Map;
-import java.util.Properties;
 
 /**
  * Common base class for all mojos with all common attributes.<br>
@@ -114,6 +114,13 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
      * @parameter property="flyway.schemas"
      */
     private String[] schemas;
+
+    /**
+     * Whether the multiple db mode option is enabled or not 
+     *
+     * @parameter property="flyway.multipleDbMode"
+     */
+    private boolean multipleDbMode = flyway.isMultipleDbMode();
 
     /**
      * <p>The name of the metadata table that will be used by Flyway. (default: schema_version)</p>
@@ -448,6 +455,7 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
 
             flyway.setClassLoader(Thread.currentThread().getContextClassLoader());
             flyway.setSchemas(schemas);
+            flyway.setMultipleDbMode(multipleDbMode);
             flyway.setTable(table);
             if (initVersion != null) {
                 log.warn("flyway.initVersion is deprecated. Use baselineVersion instead. Will be removed in Flyway 4.0.");
