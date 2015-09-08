@@ -89,9 +89,9 @@ public class DbRepair {
     /**
      * Repairs the metadata table.
      */
-    public void repair() {
+    public void repair(boolean commitOnSuccess) {
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connection).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.beforeRepair(connection);
@@ -103,7 +103,7 @@ public class DbRepair {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        new TransactionTemplate(connection).execute(new TransactionCallback<Void>() {
+        new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Void>() {
             public Void doInTransaction() {
                 metaDataTable.removeFailedMigrations();
 
@@ -133,7 +133,7 @@ public class DbRepair {
         }
 
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connection).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.afterRepair(connection);

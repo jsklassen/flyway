@@ -113,9 +113,9 @@ public class DbValidate {
      *
      * @return The validation error, if any.
      */
-    public String validate() {
+    public String validate(boolean commitOnSuccess) {
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.beforeValidate(connectionUserObjects);
@@ -128,7 +128,7 @@ public class DbValidate {
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
 
-        Pair<Integer, String> result = new TransactionTemplate(connectionMetaDataTable).execute(new TransactionCallback<Pair<Integer, String>>() {
+        Pair<Integer, String> result = new TransactionTemplate(connectionMetaDataTable, true, commitOnSuccess).execute(new TransactionCallback<Pair<Integer, String>>() {
             public Pair<Integer, String> doInTransaction() {
                 MigrationInfoServiceImpl migrationInfoService =
                         new MigrationInfoServiceImpl(migrationResolver, metaDataTable, target, outOfOrder, pendingOrFuture);
@@ -153,7 +153,7 @@ public class DbValidate {
         }
 
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.afterValidate(connectionUserObjects);

@@ -80,9 +80,9 @@ public class DbBaseline {
     /**
      * Baselines the database.
      */
-    public void baseline() {
+    public void baseline(boolean commitOnSuccess) {
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connection).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.beforeInit(connection);
@@ -92,7 +92,7 @@ public class DbBaseline {
             });
         }
 
-        new TransactionTemplate(connection).execute(new TransactionCallback<Void>() {
+        new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Void>() {
             public Void doInTransaction() {
                 if (metaDataTable.hasAppliedMigrations()) {
                     throw new FlywayException("Unable to baseline metadata table " + metaDataTable + " as it already contains migrations");
@@ -122,7 +122,7 @@ public class DbBaseline {
         LOG.info("Schema baselined with version: " + baselineVersion);
 
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connection).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.afterInit(connection);

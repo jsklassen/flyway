@@ -61,8 +61,8 @@ public class DbSchemas {
     /**
      * Creates the schemas
      */
-    public void create() {
-        new TransactionTemplate(connection).execute(new TransactionCallback<Void>() {
+    public void create(boolean commitOnSuccess) {
+        new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Void>() {
             public Void doInTransaction() {
                 for (Schema schema : schemas) {
                     if (schema.exists()) {

@@ -34,28 +34,35 @@ public class TransactionTemplate {
     private final Connection connection;
 
     /**
+     * Whether to commit or keep building up statements in a transaction.
+     */
+    private final boolean commitOnSuccess;
+
+    /**
      * Whether to roll back the transaction when an exception is thrown.
      */
     private final boolean rollbackOnException;
 
-    /**
-     * Creates a new transaction template for this connection.
-     *
-     * @param connection The connection for the transaction.
-     */
-    public TransactionTemplate(Connection connection) {
-        this(connection, true);
-    }
+//    /**
+//     * Creates a new transaction template for this connection.
+//     *
+//     * @param connection The connection for the transaction.
+//     */
+//    public TransactionTemplate(Connection connection) {
+//        this(connection, true, true);
+//    }
 
     /**
      * Creates a new transaction template for this connection.
      *
      * @param connection          The connection for the transaction.
      * @param rollbackOnException Whether to roll back the transaction when an exception is thrown.
+     * @param commitOnSuccess
      */
-    public TransactionTemplate(Connection connection, boolean rollbackOnException) {
+    public TransactionTemplate(Connection connection, boolean rollbackOnException, boolean commitOnSuccess) {
         this.connection = connection;
         this.rollbackOnException = rollbackOnException;
+        this.commitOnSuccess = commitOnSuccess;
     }
 
     /**
@@ -68,9 +75,15 @@ public class TransactionTemplate {
         boolean oldAutocommit = true;
         try {
             oldAutocommit = connection.getAutoCommit();
+            LOG.debug("Autocommit was " + oldAutocommit);
             connection.setAutoCommit(false);
+            LOG.debug("Autocommit was temporarily set to " + connection.getAutoCommit());
+            LOG.debug("Beginning transaction...");
             T result = transactionCallback.doInTransaction();
-            connection.commit();
+            if (commitOnSuccess) {
+                connection.commit();
+                LOG.debug("Committing transaction...");
+            }
             return result;
         } catch (SQLException e) {
             throw new FlywayException("Unable to commit transaction", e);
@@ -83,9 +96,10 @@ public class TransactionTemplate {
                 } catch (SQLException se) {
                     LOG.error("Unable to rollback transaction", se);
                 }
-            } else {
+            } else if (commitOnSuccess) {
                 try {
                     connection.commit();
+                    LOG.debug("Committing transaction...");
                 } catch (SQLException se) {
                     LOG.error("Unable to commit transaction", se);
                 }

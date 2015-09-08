@@ -136,17 +136,16 @@ public class DbMigrate {
      * @return The number of successfully applied migrations.
      * @throws FlywayException when migration failed.
      */
-    public int migrate() throws FlywayException {
-        //TODO: reconcile
-//        for (final FlywayCallback callback : callbacks) {
-//            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
-//                @Override
-//                public Object doInTransaction() throws SQLException {
-//                    callback.beforeMigrate(connectionUserObjects);
-//                    return null;
-//                }
-//            });
-//        }
+    public int migrate(boolean commitOnSuccess) throws FlywayException {
+        for (final FlywayCallback callback : callbacks) {
+            new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
+                @Override
+                public Object doInTransaction() throws SQLException {
+                    callback.beforeMigrate(connectionUserObjects);
+                    return null;
+                }
+            });
+        }
 
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -207,7 +206,7 @@ public class DbMigrate {
                     }
 
                     boolean isOutOfOrder = pendingMigrations[0].getVersion().compareTo(currentSchemaVersion) < 0;
-                    result = applyMigration(pendingMigrations[0], isOutOfOrder);
+                    result = applyMigration(pendingMigrations[0], isOutOfOrder, commitOnSuccess);
 //                }
 //            });
             if (result == null) {
@@ -222,16 +221,15 @@ public class DbMigrate {
 
         logSummary(migrationSuccessCount, stopWatch.getTotalTimeMillis());
 
-        //TODO: reconcile
-//        for (final FlywayCallback callback : callbacks) {
-//            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
-//                @Override
-//                public Object doInTransaction() throws SQLException {
-//                    callback.afterMigrate(connectionUserObjects);
-//                    return null;
-//                }
-//            });
-//        }
+        for (final FlywayCallback callback : callbacks) {
+            new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
+                @Override
+                public Object doInTransaction() throws SQLException {
+                    callback.afterMigrate(connectionUserObjects);
+                    return null;
+                }
+            });
+        }
 
         return migrationSuccessCount;
     }
@@ -262,7 +260,7 @@ public class DbMigrate {
      * @param isOutOfOrder If this migration is being applied out of order.
      * @return The result of the migration.
      */
-    private MigrationVersion applyMigration(final MigrationInfoImpl migration, boolean isOutOfOrder) {
+    private MigrationVersion applyMigration(final MigrationInfoImpl migration, boolean isOutOfOrder, boolean commitOnSuccess) {
         MigrationVersion version = migration.getVersion();
         LOG.info("Migrating schema " + schema + " to version " + version + " - " + migration.getDescription() +
                 (isOutOfOrder ? " (out of order)" : ""));
@@ -272,7 +270,7 @@ public class DbMigrate {
 
         try {
             for (final FlywayCallback callback : callbacks) {
-                new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
+                new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                     @Override
                     public Object doInTransaction() throws SQLException {
                         callback.beforeEachMigrate(connectionUserObjects, migration);
@@ -283,7 +281,7 @@ public class DbMigrate {
 
             final MigrationExecutor migrationExecutor = migration.getResolvedMigration().getExecutor();
             if (migrationExecutor.executeInTransaction()) {
-                new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Void>() {
+                new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Void>() {
                     public Void doInTransaction() throws SQLException {
                         migrationExecutor.execute(connectionUserObjects);
                         return null;
@@ -296,10 +294,11 @@ public class DbMigrate {
                     throw new FlywayException("Unable to apply migration", e);
                 }
             }
+            //TODO: make "committed" text conditional to commitOnSuccess
             LOG.debug("Successfully completed and committed migration of schema " + schema + " to version " + version);
 
             for (final FlywayCallback callback : callbacks) {
-                new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
+                new TransactionTemplate(connectionUserObjects, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                     @Override
                     public Object doInTransaction() throws SQLException {
                         callback.afterEachMigrate(connectionUserObjects, migration);

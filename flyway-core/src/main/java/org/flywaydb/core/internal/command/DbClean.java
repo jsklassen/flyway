@@ -76,9 +76,9 @@ public class DbClean {
      *
      * @throws FlywayException when clean failed.
      */
-    public void clean() throws FlywayException {
+    public void clean(boolean commitOnSuccess) throws FlywayException {
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connection).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.beforeClean(connection);
@@ -101,14 +101,14 @@ public class DbClean {
             }
 
             if (dropSchemas) {
-                dropSchema(schema);
+                dropSchema(schema, commitOnSuccess);
             } else {
-                cleanSchema(schema);
+                cleanSchema(schema, commitOnSuccess);
             }
         }
 
         for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connection).execute(new TransactionCallback<Object>() {
+            new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Object>() {
                 @Override
                 public Object doInTransaction() throws SQLException {
                     callback.afterClean(connection);
@@ -124,11 +124,11 @@ public class DbClean {
      * @param schema The schema to drop.
      * @throws FlywayException when the drop failed.
      */
-    private void dropSchema(final Schema schema) {
+    private void dropSchema(final Schema schema, boolean commitOnSuccess) {
         LOG.debug("Dropping schema " + schema + " ...");
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
-        new TransactionTemplate(connection).execute(new TransactionCallback<Void>() {
+        new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Void>() {
             public Void doInTransaction() {
                 schema.drop();
                 return null;
@@ -145,11 +145,11 @@ public class DbClean {
      * @param schema The schema to clean.
      * @throws FlywayException when clean failed.
      */
-    private void cleanSchema(final Schema schema) {
+    private void cleanSchema(final Schema schema, boolean commitOnSuccess) {
         LOG.debug("Cleaning schema " + schema + " ...");
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
-        new TransactionTemplate(connection).execute(new TransactionCallback<Void>() {
+        new TransactionTemplate(connection, true, commitOnSuccess).execute(new TransactionCallback<Void>() {
             public Void doInTransaction() {
                 schema.clean();
                 return null;
