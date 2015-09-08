@@ -137,15 +137,16 @@ public class DbMigrate {
      * @throws FlywayException when migration failed.
      */
     public int migrate() throws FlywayException {
-        for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
-                @Override
-                public Object doInTransaction() throws SQLException {
-                    callback.beforeMigrate(connectionUserObjects);
-                    return null;
-                }
-            });
-        }
+        //TODO: reconcile
+//        for (final FlywayCallback callback : callbacks) {
+//            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
+//                @Override
+//                public Object doInTransaction() throws SQLException {
+//                    callback.beforeMigrate(connectionUserObjects);
+//                    return null;
+//                }
+//            });
+//        }
 
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
@@ -153,8 +154,9 @@ public class DbMigrate {
         int migrationSuccessCount = 0;
         while (true) {
             final boolean firstRun = migrationSuccessCount == 0;
-            MigrationVersion result = new TransactionTemplate(connectionMetaDataTable, false).execute(new TransactionCallback<MigrationVersion>() {
-                public MigrationVersion doInTransaction() {
+            MigrationVersion result = null;
+//            MigrationVersion result = new TransactionTemplate(connectionMetaDataTable, false).execute(new TransactionCallback<MigrationVersion>() {
+//                public MigrationVersion doInTransaction() {
                     metaDataTable.lock();
 
                     MigrationInfoServiceImpl infoService =
@@ -200,13 +202,13 @@ public class DbMigrate {
                     MigrationInfoImpl[] pendingMigrations = infoService.pending();
 
                     if (pendingMigrations.length == 0) {
-                        return null;
+                        result = null;
                     }
 
                     boolean isOutOfOrder = pendingMigrations[0].getVersion().compareTo(currentSchemaVersion) < 0;
-                    return applyMigration(pendingMigrations[0], isOutOfOrder);
-                }
-            });
+                    result = applyMigration(pendingMigrations[0], isOutOfOrder);
+//                }
+//            });
             if (result == null) {
                 // No further migrations available
                 break;
@@ -219,15 +221,16 @@ public class DbMigrate {
 
         logSummary(migrationSuccessCount, stopWatch.getTotalTimeMillis());
 
-        for (final FlywayCallback callback : callbacks) {
-            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
-                @Override
-                public Object doInTransaction() throws SQLException {
-                    callback.afterMigrate(connectionUserObjects);
-                    return null;
-                }
-            });
-        }
+        //TODO: reconcile
+//        for (final FlywayCallback callback : callbacks) {
+//            new TransactionTemplate(connectionUserObjects).execute(new TransactionCallback<Object>() {
+//                @Override
+//                public Object doInTransaction() throws SQLException {
+//                    callback.afterMigrate(connectionUserObjects);
+//                    return null;
+//                }
+//            });
+//        }
 
         return migrationSuccessCount;
     }

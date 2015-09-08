@@ -47,6 +47,8 @@ import org.flywaydb.core.internal.util.StringUtils;
 import org.flywaydb.core.internal.util.VersionPrinter;
 import org.flywaydb.core.internal.util.jdbc.DriverDataSource;
 import org.flywaydb.core.internal.util.jdbc.JdbcUtils;
+import org.flywaydb.core.internal.util.jdbc.TransactionCallback;
+import org.flywaydb.core.internal.util.jdbc.TransactionTemplate;
 import org.flywaydb.core.internal.util.logging.Log;
 import org.flywaydb.core.internal.util.logging.LogFactory;
 
@@ -1030,78 +1032,83 @@ public class Flyway {
     public int migrate() throws FlywayException {
         return execute(new Command<Integer>() {
 
-            public Integer execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas) {
+            public Integer execute(final Connection connectionMetaDataTable, final Connection connectionUserObjects, final DbSupport dbSupport, final Schema[] schemas) {
+                return new TransactionTemplate(connectionMetaDataTable).execute(new TransactionCallback<Integer>() {
+                    public Integer doInTransaction() {
+                        int successful = 0;
 
-                int successful = 0;
-                for(Schema schema : schemas) {
+                        for(Schema schema : schemas) {
 
-                    MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport,schema.getTable(table));
-                    MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
-                    if(validateOnMigrate) {
-                        doValidate(connectionMetaDataTable,connectionUserObjects,migrationResolver,metaDataTable,schemas,true);
-                    }
+                            MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport,schema.getTable(table));
+                            MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
+                            if(validateOnMigrate) {
+                                doValidate(connectionMetaDataTable,connectionUserObjects,migrationResolver,metaDataTable,schemas,true);
+                            }
 
-                    new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create();
+                            new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create();
 
-                    if(!metaDataTable.hasSchemasMarker() && !metaDataTable.hasBaselineMarker() && !metaDataTable.hasAppliedMigrations()) {
-                        List<Schema> nonEmptySchemas = new ArrayList<Schema>();
+                            if(!metaDataTable.hasSchemasMarker() && !metaDataTable.hasBaselineMarker() && !metaDataTable.hasAppliedMigrations()) {
+                                List<Schema> nonEmptySchemas = new ArrayList<Schema>();
 
-                        if(!schema.empty()) {
-                            nonEmptySchemas.add(schema);
-                        }
-
-                        if(!multipleDbMode) {
-                            for(int i=1,l=schemas.length;i<l;++i) {
                                 if(!schema.empty()) {
-                                    nonEmptySchemas.add(schemas[i]);
+                                    nonEmptySchemas.add(schema);
+                                }
+
+                                if(!multipleDbMode) {
+                                    for(int i=1,l=schemas.length;i<l;++i) {
+                                        if(!schema.empty()) {
+                                            nonEmptySchemas.add(schemas[i]);
+                                        }
+                                    }
+                                }
+
+                                if(baselineOnMigrate || nonEmptySchemas.isEmpty()) {
+                                    if(baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
+                                        new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline();
+                                    }
+                                } else {
+                                    if(nonEmptySchemas.size() == 1) {
+                                        Schema s = nonEmptySchemas.get(0);
+                                        if(schema.allTables().length != 1 || !schema.getTable(table).exists()) {
+                                            throw new FlywayException("Found non-empty schema " + schema
+                                                    + " without metadata table! Use baseline()"
+                                                    + " or set baselineOnMigrate to true to initialize the metadata table.");
+                                        }
+                                    } else {
+                                        throw new FlywayException("Found non-empty schemas "
+                                                + StringUtils.collectionToCommaDelimitedString(nonEmptySchemas)
+                                                + " without metadata table! Use baseline()"
+                                                + " or set baselineOnMigrate to true to initialize the metadata table.");
+                                    }
+                                }
+                            }
+
+                            DbSupport dbSupportUserObjects = DbSupportFactory.createDbSupport(connectionUserObjects, false);
+                            Schema originalSchemaUserObjects = dbSupportUserObjects.getCurrentSchema();
+                            boolean schemaChange = !schema.equals(originalSchemaUserObjects);
+                            if(schemaChange) {
+                                dbSupportUserObjects.setCurrentSchema(schema);
+                            }
+
+                            DbMigrate dbMigrate = new DbMigrate(connectionMetaDataTable,connectionUserObjects,dbSupport,metaDataTable,
+                                    schema, migrationResolver, target, ignoreFailedFutureMigration, outOfOrder, callbacks);
+
+                            try {
+                                if(multipleDbMode) {
+                                    successful += dbMigrate.migrate();
+                                } else {
+                                    return dbMigrate.migrate();
+                                }
+                            } finally {
+                                if(schemaChange) {
+                                    dbSupportUserObjects.setCurrentSchema(originalSchemaUserObjects);
                                 }
                             }
                         }
 
-                        if(baselineOnMigrate || nonEmptySchemas.isEmpty()) {
-                            if(baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
-                                new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline();
-                            }
-                        } else {
-                            if(nonEmptySchemas.size() == 1) {
-                                Schema s = nonEmptySchemas.get(0);
-                                if(schema.allTables().length != 1 || !schema.getTable(table).exists()) {
-                                    throw new FlywayException("Found non-empty schema " + schema
-                                            + " without metadata table! Use baseline()"
-                                            + " or set baselineOnMigrate to true to initialize the metadata table.");
-                                }
-                            } else {
-                                throw new FlywayException("Found non-empty schemas "
-                                        + StringUtils.collectionToCommaDelimitedString(nonEmptySchemas)
-                                        + " without metadata table! Use baseline()"
-                                        + " or set baselineOnMigrate to true to initialize the metadata table.");
-                            }
-                        }
+                        return successful;
                     }
-
-                    DbSupport dbSupportUserObjects = DbSupportFactory.createDbSupport(connectionUserObjects, false);
-                    Schema originalSchemaUserObjects = dbSupportUserObjects.getCurrentSchema();
-                    boolean schemaChange = !schema.equals(originalSchemaUserObjects);
-                    if(schemaChange) {
-                        dbSupportUserObjects.setCurrentSchema(schema);
-                    }
-
-                    DbMigrate dbMigrate = new DbMigrate(connectionMetaDataTable,connectionUserObjects,dbSupport,metaDataTable,
-                            schema, migrationResolver, target, ignoreFailedFutureMigration, outOfOrder, callbacks);
-
-                    try {
-                        if(multipleDbMode) {
-                            successful += dbMigrate.migrate();
-                        } else {
-                            return dbMigrate.migrate();
-                        }
-                    } finally {
-                        if(schemaChange) {
-                            dbSupportUserObjects.setCurrentSchema(originalSchemaUserObjects);
-                        }
-                    }
-                }
-                return successful;
+                });
             }
         });
     }
