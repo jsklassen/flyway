@@ -203,6 +203,7 @@ public class DbMigrate {
 
                     if (pendingMigrations.length == 0) {
                         result = null;
+                        break;
                     }
 
                     boolean isOutOfOrder = pendingMigrations[0].getVersion().compareTo(currentSchemaVersion) < 0;
