@@ -34,8 +34,7 @@ public class DB2iseriesDbSupport extends DbSupport {
      * @param connection The connection to use.
      */
     public DB2iseriesDbSupport(Connection connection) {
-        //connection.setAutoCommit(false);
-        super(new JdbcTemplate(connection, Types.VARCHAR));
+        super(new JdbcTemplate(connection, Types.VARCHAR, false));
     }
 
     public String getDbName() {

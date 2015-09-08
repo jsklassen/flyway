@@ -55,9 +55,26 @@ public class JdbcTemplate {
      * @param nullType   The type to assign to a null value.
      */
     public JdbcTemplate(Connection connection, int nullType) {
+       try {
+            LOG.debug("JdbcTemplate created with autocommit set to " + connection.getAutoCommit());
+        }    catch (SQLException e) {
+            LOG.debug("JdbcTemplate failed to read autocommit");
+        }
         this.connection = connection;
         this.nullType = nullType;
     }
+
+    public JdbcTemplate(Connection connection, int nullType, boolean autocommit) {
+        try {
+            connection.setAutoCommit(autocommit);
+            LOG.debug("JdbcTemplate created with autocommit set to " + connection.getAutoCommit());
+        }    catch (SQLException e) {
+            LOG.debug("JdbcTemplate failed to set autocommit");
+        }
+        this.connection = connection;
+        this.nullType = nullType;
+    }
+
 
     /**
      * @return The DB connection to use.
