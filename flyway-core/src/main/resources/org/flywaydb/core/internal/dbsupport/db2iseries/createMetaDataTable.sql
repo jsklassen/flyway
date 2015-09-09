@@ -33,4 +33,4 @@ CREATE INDEX ${schema}.${table}_vr_idx ON ${schema}.${table} (version_rank);
 CREATE INDEX ${schema}.${table}_ir_idx ON ${schema}.${table} (installed_rank);
 CREATE INDEX ${schema}.${table}_s_idx ON ${schema}.${table} (success);
 
-GRANT select,insert,update on table ${schema}.${table} to jgqauser;
+grant select, insert, update, delete on ${schema}.${table} to QPGMR;
