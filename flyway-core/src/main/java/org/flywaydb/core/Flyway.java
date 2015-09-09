@@ -1032,7 +1032,11 @@ public class Flyway {
     public int migrate() throws FlywayException {
         return execute(new Command<Integer>() {
 
-            public Integer execute(final Connection connectionMetaDataTable, final Connection connectionUserObjects, final DbSupport dbSupport, final Schema[] schemas) {
+            public Integer execute( final Connection connectionMDT, final Connection connectionUO, final DbSupport dbSupport, final Schema[] schemas) {
+                //TODO: make this configurable on single mode or not
+               final Connection connectionMetaDataTable = connectionUO;
+               final Connection connectionUserObjects = connectionMDT;
+
                 return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
                         int successful = 0;
