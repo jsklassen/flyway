@@ -1034,7 +1034,8 @@ public class Flyway {
 
             public Integer execute( final Connection connectionMDT, final Connection connectionUO, final DbSupport dbSupport, final Schema[] schemas) {
                 //TODO: make this configurable on single mode or not
-               final Connection connectionMetaDataTable = connectionUO;
+                //use the metadatable
+               final Connection connectionMetaDataTable = connectionMDT;
                final Connection connectionUserObjects = connectionMDT;
 
                 return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
