@@ -52,12 +52,6 @@ import org.flywaydb.core.internal.util.jdbc.TransactionTemplate;
 import org.flywaydb.core.internal.util.logging.Log;
 import org.flywaydb.core.internal.util.logging.LogFactory;
 
-import java.sql.Connection;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 /**
  * This is the centre point of Flyway, and for most users, the only class they will ever have to deal with.
  * <p>
@@ -105,6 +99,7 @@ public class Flyway {
      * Will allow multiple schemas to be migrated at once
      */
     private boolean multipleDbMode = false;
+    private boolean singleConnectionMode = false;
 
     /**
      * <p>The name of the schema metadata table that will be used by Flyway. (default: schema_version)</p><p> By default
@@ -659,6 +654,10 @@ public class Flyway {
         this.multipleDbMode = multipleDbMode;
     }
 
+    public void setSingleConnectionMode(boolean singleConnectionMode) {
+          this.singleConnectionMode = singleConnectionMode;
+      }
+
 
     /**
      * <p>Sets the name of the schema metadata table that will be used by Flyway.</p><p> By default (single-schema mode)
@@ -806,7 +805,7 @@ public class Flyway {
      * @param initSqls The (optional) sql statements to execute to initialize a connection immediately after obtaining it.
      */
     public void setDataSource(String url, String user, String password, String... initSqls) {
-        this.dataSource = new DriverDataSource(classLoader, null, url, user, password, initSqls);
+        this.dataSource = new DriverDataSource(classLoader, null, url, user, password, false, initSqls);
         createdDataSource = true;
     }
 
@@ -1032,11 +1031,11 @@ public class Flyway {
     public int migrate() throws FlywayException {
         return execute(new Command<Integer>() {
 
-            public Integer execute( final Connection connectionMDT, final Connection connectionUO, final DbSupport dbSupport, final Schema[] schemas) {
+            public Integer execute( final Connection connectionMetaDataTable, final Connection connectionUserObjects, final DbSupport dbSupport, final Schema[] schemas) {
                 //TODO: make this configurable on single mode or not
                 //use the metadatable
-               final Connection connectionMetaDataTable = connectionMDT;
-               final Connection connectionUserObjects = connectionMDT;
+//               final Connection connectionMetaDataTable = connectionMDT;
+//               final Connection connectionUserObjects = connectionMDT;
 
                 return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
@@ -1299,9 +1298,16 @@ public class Flyway {
         String urlProp = properties.getProperty("flyway.url");
         String userProp = properties.getProperty("flyway.user");
         String passwordProp = properties.getProperty("flyway.password");
+        String singleConnectionModeProp = properties.getProperty("flyway.singleConnectionMode");
+        if(singleConnectionModeProp != null) {
+            setSingleConnectionMode(Boolean.parseBoolean(singleConnectionModeProp));
+        }
+        //TODO: figure out why property isnt read
+        setSingleConnectionMode(true);
+
 
         if (StringUtils.hasText(urlProp)) {
-            setDataSource(new DriverDataSource(classLoader, driverProp, urlProp, userProp, passwordProp));
+            setDataSource(new DriverDataSource(classLoader, driverProp, urlProp, userProp, passwordProp, singleConnectionMode));
         } else if (!StringUtils.hasText(urlProp) &&
                 (StringUtils.hasText(driverProp) || StringUtils.hasText(userProp) || StringUtils.hasText(passwordProp))) {
             LOG.warn("Discarding INCOMPLETE dataSource configuration! flyway.url must be set.");

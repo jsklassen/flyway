@@ -16,7 +16,6 @@
 package org.flywaydb.core.internal.dbsupport.sqlite;
 
 import org.flywaydb.core.DbCategory;
-import org.flywaydb.core.Flyway;
 import org.flywaydb.core.migration.MigrationTestCase;
 import org.flywaydb.core.internal.util.jdbc.DriverDataSource;
 import org.junit.Ignore;
@@ -37,7 +36,7 @@ import static org.junit.Assert.assertTrue;
 public class SQLiteMigrationMediumTest extends MigrationTestCase {
     @Override
     protected DataSource createDataSource(Properties customProperties) {
-        return new DriverDataSource(Thread.currentThread().getContextClassLoader(), null, "jdbc:sqlite::memory:", "", "");
+        return new DriverDataSource(Thread.currentThread().getContextClassLoader(), null, "jdbc:sqlite::memory:", "", "", false);
     }
 
     @Override

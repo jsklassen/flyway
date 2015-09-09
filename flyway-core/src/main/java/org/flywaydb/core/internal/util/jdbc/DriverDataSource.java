@@ -82,15 +82,17 @@ public class DriverDataSource implements DataSource {
     /**
      * Creates a new DriverDataSource.
      *
+     *
      * @param classLoader The ClassLoader to use.
      * @param driverClass The name of the JDBC Driver class to use. {@code null} for url-based autodetection.
      * @param url         The JDBC URL to use for connecting through the Driver. (required)
      * @param user        The JDBC user to use for connecting through the Driver.
      * @param password    The JDBC password to use for connecting through the Driver.
-     * @param initSqls    The (optional) sql statements to execute to initialize a connection immediately after obtaining it.
-     * @throws FlywayException when the datasource could not be created.
+     * @param singleConnectionMode
+     *@param initSqls    The (optional) sql statements to execute to initialize a connection immediately after obtaining it.  @throws FlywayException when the datasource could not be created.
      */
-    public DriverDataSource(ClassLoader classLoader, String driverClass, String url, String user, String password, String... initSqls) throws FlywayException {
+    public DriverDataSource(ClassLoader classLoader, String driverClass, String url, String user, String password, boolean singleConnectionMode,
+            String... initSqls) throws FlywayException {
         if (!StringUtils.hasText(url)) {
             throw new FlywayException("Missing required JDBC URL. Unable to create DataSource!");
         }
@@ -124,6 +126,7 @@ public class DriverDataSource implements DataSource {
 
         this.user = user;
         this.password = password;
+        this.singleConnectionMode = singleConnectionMode;
 
         if (initSqls == null) {
             initSqls = new String[0];
@@ -154,6 +157,11 @@ public class DriverDataSource implements DataSource {
     private String detectDriverForUrl(String url) {
         if (url.startsWith("jdbc:db2:")) {
             return "com.ibm.db2.jcc.DB2Driver";
+        }
+
+        if (url.startsWith("jdbc:as400:")) {
+            singleConnectionMode = true;
+            return "com.ibm.as400.access.AS400JDBCDriver";
         }
 
         if (url.startsWith("jdbc:derby://")) {
