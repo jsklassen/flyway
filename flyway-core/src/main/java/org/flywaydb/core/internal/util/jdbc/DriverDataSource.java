@@ -160,7 +160,6 @@ public class DriverDataSource implements DataSource {
         }
 
         if (url.startsWith("jdbc:as400:")) {
-            singleConnectionMode = true;
             return "com.ibm.as400.access.AS400JDBCDriver";
         }
 

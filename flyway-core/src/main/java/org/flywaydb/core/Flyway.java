@@ -99,6 +99,7 @@ public class Flyway {
      * Will allow multiple schemas to be migrated at once
      */
     private boolean multipleDbMode = false;
+    private boolean singleTransactionMode = false;
     private boolean singleConnectionMode = false;
 
     /**
@@ -210,6 +211,7 @@ public class Flyway {
      * </p>
      */
     private boolean baselineOnMigrate;
+    private boolean rollbackOnSuccess;
 
     /**
      * Allows migrations to be run "out of order".
@@ -308,6 +310,10 @@ public class Flyway {
     public boolean isMultipleDbMode() {
         return multipleDbMode;
     }
+
+    public boolean isSingleTransactionMode() {
+          return singleTransactionMode;
+      }
 
     /**
      * <p>Retrieves the name of the schema metadata table that will be used by Flyway.</p><p> By default (single-schema
@@ -480,6 +486,10 @@ public class Flyway {
     public boolean isBaselineOnMigrate() {
         return baselineOnMigrate;
     }
+    
+    public boolean isRollbackOnSuccess() {
+           return rollbackOnSuccess;
+       }
 
     /**
      * Retrieves the version to tag an existing schema with when executing baseline.
@@ -653,7 +663,9 @@ public class Flyway {
     public void setMultipleDbMode(boolean multipleDbMode) {
         this.multipleDbMode = multipleDbMode;
     }
-
+    public void setSingleTransactionMode(boolean singleTransactionMode) {
+           this.singleTransactionMode = singleTransactionMode;
+       }
     public void setSingleConnectionMode(boolean singleConnectionMode) {
           this.singleConnectionMode = singleConnectionMode;
       }
@@ -875,6 +887,10 @@ public class Flyway {
      */
     public void setBaselineOnMigrate(boolean baselineOnMigrate) {
         this.baselineOnMigrate = baselineOnMigrate;
+    }
+
+    public void setRollbackOnSuccess(boolean rollbackOnSuccess) {
+        this.rollbackOnSuccess = rollbackOnSuccess;
     }
 
     /**
@@ -1109,10 +1125,10 @@ public class Flyway {
                                 }
                             }
                         }
-
                         return successful;
                     }
                 });
+
             }
         });
     }
@@ -1230,8 +1246,10 @@ public class Flyway {
      * @throws FlywayException when the schema baselining failed.
      */
     public void baseline() throws FlywayException {
-        execute(new Command<Void>() {
-            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas) {
+        execute(new Command<Void>()
+        {
+            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas)
+            {
                 MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport, schemas[0].getTable(table));
                 new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create(true);
                 new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline(true);
@@ -1251,8 +1269,10 @@ public class Flyway {
      * @throws FlywayException when the metadata table repair failed.
      */
     public void repair() throws FlywayException {
-        execute(new Command<Void>() {
-            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas) {
+        execute(new Command<Void>()
+        {
+            public Void execute(Connection connectionMetaDataTable, Connection connectionUserObjects, DbSupport dbSupport, Schema[] schemas)
+            {
                 MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
                 MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport, schemas[0].getTable(table));
                 new DbRepair(dbSupport, connectionMetaDataTable, migrationResolver, metaDataTable, callbacks).repair(true);
@@ -1298,13 +1318,13 @@ public class Flyway {
         String urlProp = properties.getProperty("flyway.url");
         String userProp = properties.getProperty("flyway.user");
         String passwordProp = properties.getProperty("flyway.password");
-        String singleConnectionModeProp = properties.getProperty("flyway.singleConnectionMode");
-        if(singleConnectionModeProp != null) {
-            setSingleConnectionMode(Boolean.parseBoolean(singleConnectionModeProp));
+        String singleTransactionModeProp = properties.getProperty("flyway.singleTransactionMode");
+        if(singleTransactionModeProp != null) {
+            setSingleTransactionMode(Boolean.parseBoolean(singleTransactionModeProp));
         }
-        //TODO: figure out why property isnt read
-        setSingleConnectionMode(true);
-
+        //for transactions to work they must be in a single connection or metadata and user objects gets out of sync
+        setSingleConnectionMode(singleTransactionMode);
+//        setSingleConnectionMode(true);
 
         if (StringUtils.hasText(urlProp)) {
             setDataSource(new DriverDataSource(classLoader, driverProp, urlProp, userProp, passwordProp, singleConnectionMode));
@@ -1345,7 +1365,7 @@ public class Flyway {
         if (schemasProp != null) {
             setSchemas(StringUtils.tokenizeToStringArray(schemasProp, ","));
         }
-        String multipleDbModeProp = properties.getProperty("flyway.multipleDbModeProp");
+        String multipleDbModeProp = properties.getProperty("flyway.multipleDbMode");
         if(multipleDbModeProp != null) {
             setMultipleDbMode(Boolean.parseBoolean(multipleDbModeProp));
         }
@@ -1387,6 +1407,10 @@ public class Flyway {
         String baselineOnMigrateProp = properties.getProperty("flyway.baselineOnMigrate");
         if (baselineOnMigrateProp != null) {
             setBaselineOnMigrate(Boolean.parseBoolean(baselineOnMigrateProp));
+        }
+        String rollbackOnSuccessProp = properties.getProperty("flyway.rollbackOnSuccessProp");
+        if (rollbackOnSuccessProp != null) {
+            setRollbackOnSuccess(Boolean.parseBoolean(rollbackOnSuccessProp));
         }
         String ignoreFailedFutureMigrationProp = properties.getProperty("flyway.ignoreFailedFutureMigration");
         if (ignoreFailedFutureMigrationProp != null) {

@@ -497,6 +497,10 @@ public abstract class AbstractFlywayTask extends Task {
         flyway.setBaselineOnMigrate(baselineOnMigrate);
     }
 
+    public void setRollbackOnSuccess(boolean rollbackOnSuccess) {
+        flyway.setRollbackOnSuccess(rollbackOnSuccess);
+    }
+
     @Override
     public void init() throws BuildException {
         AntLogCreator.INSTANCE.setAntProject(getProject());

@@ -123,6 +123,13 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
     private boolean multipleDbMode = flyway.isMultipleDbMode();
 
     /**
+    * runs it all in one transaction and one connection
+    *
+    * @parameter property="flyway.singleTransactionMode"
+    */
+    private boolean singleTransactionMode = flyway.isSingleTransactionMode();
+
+    /**
      * <p>The name of the metadata table that will be used by Flyway. (default: schema_version)</p>
      * <p> By default (single-schema mode) the
      * metadata table is placed in the default schema for the connection provided by the datasource. <br/> When the
@@ -359,6 +366,13 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
     private Boolean baselineOnMigrate;
 
     /**
+      * always rolls back at the end
+      *
+      * @parameter property="flyway.rollbackOnSuccess"
+      */
+    private Boolean rollbackOnSuccess;
+
+    /**
      * Whether to automatically call validate or not when running migrate. (default: {@code true})<br/>
      * <p>Also configurable with Maven or System Property: ${flyway.validationErrorMode}</p>
      *
@@ -456,6 +470,11 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
             flyway.setClassLoader(Thread.currentThread().getContextClassLoader());
             flyway.setSchemas(schemas);
             flyway.setMultipleDbMode(multipleDbMode);
+            flyway.setSingleTransactionMode(singleTransactionMode);
+            //this should always be the same as singleTransactionMode
+            flyway.setSingleConnectionMode(singleTransactionMode);
+            flyway.setRollbackOnSuccess(rollbackOnSuccess);
+
             flyway.setTable(table);
             if (initVersion != null) {
                 log.warn("flyway.initVersion is deprecated. Use baselineVersion instead. Will be removed in Flyway 4.0.");
