@@ -1057,15 +1057,17 @@ public class Flyway {
                     public Integer doInTransaction() {
                         int successful = 0;
 
+                        boolean commitOnSuccess = !singleTransactionMode;
+
                         for(Schema schema : schemas) {
 
                             MetaDataTable metaDataTable = new MetaDataTableImpl(dbSupport,schema.getTable(table));
                             MigrationResolver migrationResolver = createMigrationResolver(dbSupport);
                             if(validateOnMigrate) {
-                                doValidate(connectionMetaDataTable,connectionUserObjects,migrationResolver,metaDataTable,schemas,true, false);
+                                doValidate(connectionMetaDataTable,connectionUserObjects,migrationResolver,metaDataTable, schemas,true, commitOnSuccess);
                             }
 
-                            new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create(false);
+                            new DbSchemas(connectionMetaDataTable, schemas, metaDataTable).create(commitOnSuccess);
 
                             if(!metaDataTable.hasSchemasMarker() && !metaDataTable.hasBaselineMarker() && !metaDataTable.hasAppliedMigrations()) {
                                 List<Schema> nonEmptySchemas = new ArrayList<Schema>();
@@ -1084,7 +1086,7 @@ public class Flyway {
 
                                 if(baselineOnMigrate || nonEmptySchemas.isEmpty()) {
                                     if(baselineOnMigrate && !nonEmptySchemas.isEmpty()) {
-                                        new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline(false);
+                                        new DbBaseline(connectionMetaDataTable, metaDataTable, baselineVersion, baselineDescription, callbacks).baseline(commitOnSuccess);
                                     }
                                 } else {
                                     if(nonEmptySchemas.size() == 1) {
@@ -1115,9 +1117,9 @@ public class Flyway {
 
                             try {
                                 if(multipleDbMode) {
-                                    successful += dbMigrate.migrate(false);
+                                    successful += dbMigrate.migrate(commitOnSuccess);
                                 } else {
-                                    return dbMigrate.migrate(false);
+                                    return dbMigrate.migrate(commitOnSuccess);
                                 }
                             } finally {
                                 if(schemaChange) {
