@@ -371,7 +371,7 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
       *
       * @parameter property="flyway.rollbackOnSuccess"
       */
-    private Boolean rollbackOnSuccess;
+    private Boolean rollbackOnSuccess = flyway.isRollbackOnSuccess();
 
     /**
      * Whether to automatically call validate or not when running migrate. (default: {@code true})<br/>

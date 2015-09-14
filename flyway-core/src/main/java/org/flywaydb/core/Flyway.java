@@ -211,7 +211,7 @@ public class Flyway {
      * </p>
      */
     private boolean baselineOnMigrate;
-    private boolean rollbackOnSuccess;
+    private boolean rollbackOnSuccess = false;
 
     /**
      * Allows migrations to be run "out of order".
