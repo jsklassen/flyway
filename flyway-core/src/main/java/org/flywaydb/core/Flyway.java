@@ -1122,14 +1122,11 @@ public class Flyway {
                                 }
                             }
                         }
-
-                        if (rollbackOnSuccess)
-                        {
+                        if (rollbackOnSuccess) {
                             throw new FlywayException("All changes completed successfully but rollbackOnSuccess is set to true.  Changes are being rolled back.");
                         }
                         return successful;
                     }
-
                 });
 
             }
