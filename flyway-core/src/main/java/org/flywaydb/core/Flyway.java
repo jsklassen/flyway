@@ -1123,14 +1123,11 @@ public class Flyway {
                                 }
                             }
                         }
-//                        if (rollbackOnSuccess) {
-//                            throw new Exception("All changes completed successfully but rollbackOnSuccess is set to true.  Changes are being rolled back.");
-//                        }
                         return successful;
                     }
                 });
-                //check rollbackOnSuccess and commit if false
 
+                //check rollbackOnSuccess and rollback is true
                 return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
                         if(isRollbackOnSuccess()) {
@@ -1141,12 +1138,7 @@ public class Flyway {
                                 LOG.error("Rollback failed: " + e);
                                 e.printStackTrace();
                             }
-                            LOG.info("I did a rollback!");
-                        } else {
-                            LOG.info("No rollback necessary b/c isRollBackonSuccess returned false");
                         }
-                        //if rollbackOnSuccess
-                        //rollback();
                         return success;
                     }
                 });
