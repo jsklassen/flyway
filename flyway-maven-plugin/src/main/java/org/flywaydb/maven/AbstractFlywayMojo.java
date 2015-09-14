@@ -32,6 +32,7 @@ import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.FlywayException;
 import org.flywaydb.core.internal.util.ExceptionUtils;
 import org.flywaydb.core.internal.util.Location;
+import org.flywaydb.core.internal.util.StringUtils;
 import org.flywaydb.core.internal.util.logging.Log;
 import org.flywaydb.core.internal.util.logging.LogFactory;
 import org.sonatype.plexus.components.cipher.DefaultPlexusCipher;
@@ -468,7 +469,8 @@ abstract class AbstractFlywayMojo extends AbstractMojo {
             loadCredentialsFromSettings();
 
             flyway.setClassLoader(Thread.currentThread().getContextClassLoader());
-            flyway.setSchemas(schemas);
+            //flatten all entries to CSV then parse it back into a single string array splitting on comma
+            flyway.setSchemas(StringUtils.tokenizeToStringArray(StringUtils.arrayToCommaDelimitedString(schemas), ","));
             flyway.setMultipleDbMode(multipleDbMode);
             flyway.setSingleTransactionMode(singleTransactionMode);
             //this should always be the same as singleTransactionMode
