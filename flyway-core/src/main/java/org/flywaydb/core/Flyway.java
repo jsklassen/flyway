@@ -1045,7 +1045,7 @@ public class Flyway {
      * @return The number of successfully applied migrations.
      * @throws FlywayException when the migration failed.
      */
-    public int migrate() throws FlywayException, Exception {
+    public int migrate() throws FlywayException {
         return execute(new Command<Integer>() {
 
             public Integer execute( final Connection connectionMetaDataTable, final Connection connectionUserObjects, final DbSupport dbSupport, final Schema[] schemas) {
@@ -1421,7 +1421,7 @@ public class Flyway {
         if (baselineOnMigrateProp != null) {
             setBaselineOnMigrate(Boolean.parseBoolean(baselineOnMigrateProp));
         }
-        String rollbackOnSuccessProp = properties.getProperty("flyway.rollbackOnSuccessProp");
+        String rollbackOnSuccessProp = properties.getProperty("flyway.rollbackOnSuccess");
         if (rollbackOnSuccessProp != null) {
             setRollbackOnSuccess(Boolean.parseBoolean(rollbackOnSuccessProp));
         }
