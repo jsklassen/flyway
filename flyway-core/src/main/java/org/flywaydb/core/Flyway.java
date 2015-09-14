@@ -17,6 +17,7 @@ package org.flywaydb.core;
 
 
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -304,7 +305,7 @@ public class Flyway {
     }
 
     /**
-     * Get whether or not the multiple db mode is active or not  
+     * Get whether or not the multiple db mode is active
      * @return {@code true} if multiple db mode is active {@code false} if it is not enabled (default: {@code false})
      */
     public boolean isMultipleDbMode() {
@@ -312,8 +313,8 @@ public class Flyway {
     }
 
     public boolean isSingleTransactionMode() {
-          return singleTransactionMode;
-      }
+        return singleTransactionMode;
+    }
 
     /**
      * <p>Retrieves the name of the schema metadata table that will be used by Flyway.</p><p> By default (single-schema
@@ -486,10 +487,10 @@ public class Flyway {
     public boolean isBaselineOnMigrate() {
         return baselineOnMigrate;
     }
-    
+
     public boolean isRollbackOnSuccess() {
-           return rollbackOnSuccess;
-       }
+        return rollbackOnSuccess;
+    }
 
     /**
      * Retrieves the version to tag an existing schema with when executing baseline.
@@ -664,11 +665,11 @@ public class Flyway {
         this.multipleDbMode = multipleDbMode;
     }
     public void setSingleTransactionMode(boolean singleTransactionMode) {
-           this.singleTransactionMode = singleTransactionMode;
-       }
+        this.singleTransactionMode = singleTransactionMode;
+    }
     public void setSingleConnectionMode(boolean singleConnectionMode) {
-          this.singleConnectionMode = singleConnectionMode;
-      }
+        this.singleConnectionMode = singleConnectionMode;
+    }
 
 
     /**
@@ -1044,11 +1045,11 @@ public class Flyway {
      * @return The number of successfully applied migrations.
      * @throws FlywayException when the migration failed.
      */
-    public int migrate() throws FlywayException {
+    public int migrate() throws FlywayException, Exception {
         return execute(new Command<Integer>() {
 
             public Integer execute( final Connection connectionMetaDataTable, final Connection connectionUserObjects, final DbSupport dbSupport, final Schema[] schemas) {
-                return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
+                final Integer success = new TransactionTemplate(connectionMetaDataTable, true, false).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
                         int successful = 0;
 
@@ -1122,13 +1123,33 @@ public class Flyway {
                                 }
                             }
                         }
-                        if (rollbackOnSuccess) {
-                            throw new FlywayException("All changes completed successfully but rollbackOnSuccess is set to true.  Changes are being rolled back.");
-                        }
+//                        if (rollbackOnSuccess) {
+//                            throw new Exception("All changes completed successfully but rollbackOnSuccess is set to true.  Changes are being rolled back.");
+//                        }
                         return successful;
                     }
                 });
+                //check rollbackOnSuccess and commit if false
 
+                return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
+                    public Integer doInTransaction() {
+                        if(isRollbackOnSuccess()) {
+                            LOG.info("Rollback back on success (dry run)...");
+                            try {
+                                connectionMetaDataTable.rollback();
+                            } catch(SQLException e) {
+                                LOG.error("Rollback failed: " + e);
+                                e.printStackTrace();
+                            }
+                            LOG.info("I did a rollback!");
+                        } else {
+                            LOG.info("No rollback necessary b/c isRollBackonSuccess returned false");
+                        }
+                        //if rollbackOnSuccess
+                        //rollback();
+                        return success;
+                    }
+                });
             }
         });
     }
