@@ -1048,11 +1048,6 @@ public class Flyway {
         return execute(new Command<Integer>() {
 
             public Integer execute( final Connection connectionMetaDataTable, final Connection connectionUserObjects, final DbSupport dbSupport, final Schema[] schemas) {
-                //TODO: make this configurable on single mode or not
-                //use the metadatable
-//               final Connection connectionMetaDataTable = connectionMDT;
-//               final Connection connectionUserObjects = connectionMDT;
-
                 return new TransactionTemplate(connectionMetaDataTable, true, true).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
                         int successful = 0;
@@ -1127,8 +1122,14 @@ public class Flyway {
                                 }
                             }
                         }
+
+                        if (rollbackOnSuccess)
+                        {
+                            throw new FlywayException("All changes completed successfully but rollbackOnSuccess is set to true.  Changes are being rolled back.");
+                        }
                         return successful;
                     }
+
                 });
 
             }
