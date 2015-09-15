@@ -21,11 +21,11 @@
     <parent>
         <groupId>org.flywaydb</groupId>
         <artifactId>flyway-parent</artifactId>
-        <version>3.2.2-iseries-SNAPSHOT</version>
+        <version>3.2.1-iseries-1</version>
     </parent>
 
     <artifactId>flyway-core</artifactId>
-    <version>3.2.2-iseries-SNAPSHOT</version>
+    <version>3.2.1-iseries-1</version>
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
     <licenses>
