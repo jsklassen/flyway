@@ -2,14 +2,15 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.flywaydb.maven.largetest</groupId>
     <artifactId>configfile</artifactId>
-    <version>${flyway.version}</version>
+    <version>3.2.2-iseries-SNAPSHOT</version>
+
     <packaging>jar</packaging>
     <name>${project.artifactId}</name>
     <dependencies>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-sample</artifactId>
-            <version>${flyway.version}</version>
+            <version>3.2.2-iseries-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>org.hsqldb</groupId>
@@ -22,7 +23,7 @@
             <plugin>
                 <groupId>org.flywaydb</groupId>
                 <artifactId>flyway-maven-plugin</artifactId>
-                <version>${flyway.version}</version>
+                <version>3.2.2-iseries-SNAPSHOT</version>
                 <configuration>
                     <user>SA</user>
                     <schemas>

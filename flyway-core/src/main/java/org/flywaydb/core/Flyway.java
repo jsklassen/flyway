@@ -1052,6 +1052,15 @@ public class Flyway {
                 final Integer success = new TransactionTemplate(connectionMetaDataTable, true, false).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
                         int successful = 0;
+                        try{
+//                        connectionMetaDataTable.setTransactionIsolation(0);
+//                        connectionUserObjects.setTransactionIsolation(0);
+                            connectionUserObjects.createStatement().execute("set transaction isolation level no COMMIT;");
+                        }
+                        catch (SQLException e){
+
+                        }
+
 
                         boolean commitOnSuccess = !singleTransactionMode;
 

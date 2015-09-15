@@ -75,37 +75,41 @@ public class TransactionTemplate {
         boolean oldAutocommit = true;
         try {
             oldAutocommit = connection.getAutoCommit();
+            connection.setTransactionIsolation(0);
             LOG.debug("Autocommit was " + oldAutocommit);
             connection.setAutoCommit(false);
             LOG.debug("Autocommit was temporarily set to " + connection.getAutoCommit());
-            LOG.debug("Beginning transaction...");
+            LOG.debug("Beginning transaction..."+ transactionCallback.hashCode());
+            connection.createStatement().execute("set transaction isolation level no COMMIT");
             T result = transactionCallback.doInTransaction();
             if (commitOnSuccess) {
                 connection.commit();
-                LOG.debug("Committing transaction...");
+                LOG.debug("Committing transaction..."+ transactionCallback.hashCode());
             }
             return result;
         } catch (SQLException e) {
-            throw new FlywayException("Unable to commit transaction", e);
+            throw new FlywayException("Unable to commit transaction"+ transactionCallback.hashCode(), e);
         } catch (RuntimeException e) {
             if (rollbackOnException) {
                 try {
-                    LOG.debug("Rolling back transaction...");
+                    LOG.debug("Rolling back transaction..." + transactionCallback.hashCode());
                     connection.rollback();
-                    LOG.debug("Transaction rolled back");
+                    LOG.debug("Transaction rolled back"+ transactionCallback.hashCode());
                 } catch (SQLException se) {
-                    LOG.error("Unable to rollback transaction", se);
+                    LOG.error("Unable to rollback transaction"+ transactionCallback.hashCode(), se);
                 }
             } else if (commitOnSuccess) {
                 try {
                     connection.commit();
-                    LOG.debug("Committing transaction...");
+                    //this is not hit for rollbackOnSuccess
+                    LOG.debug("Committing transaction..." + transactionCallback.hashCode());
                 } catch (SQLException se) {
-                    LOG.error("Unable to commit transaction", se);
+                    LOG.error("Unable to commit transaction" + transactionCallback.hashCode(), se);
                 }
             }
             throw e;
-        } finally {
+        }
+        finally {
             try {
                 connection.setAutoCommit(oldAutocommit);
             } catch (SQLException e) {

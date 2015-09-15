@@ -51,6 +51,7 @@ public class JdbcUtils {
             if (connection == null) {
                 throw new FlywayException("Unable to obtain Jdbc connection from DataSource");
             }
+            connection.setTransactionIsolation(0);
             return connection;
         } catch (SQLException e) {
             throw new FlywayException("Unable to obtain Jdbc connection from DataSource", e);
