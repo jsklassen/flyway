@@ -46,17 +46,24 @@ public class JdbcUtils {
      * @throws FlywayException when the connection could not be opened.
      */
     public static Connection openConnection(DataSource dataSource) throws FlywayException {
-        try {
-            Connection connection = dataSource.getConnection();
-            if (connection == null) {
-                throw new FlywayException("Unable to obtain Jdbc connection from DataSource");
-            }
-            connection.setTransactionIsolation(0);
-            return connection;
-        } catch (SQLException e) {
-            throw new FlywayException("Unable to obtain Jdbc connection from DataSource", e);
-        }
+        return openConnection(dataSource, false);
     }
+
+    public static Connection openConnection(DataSource dataSource, boolean singleTransactionMode) throws FlywayException {
+           try {
+               Connection connection = dataSource.getConnection();
+               if (connection == null) {
+                   throw new FlywayException("Unable to obtain Jdbc connection from DataSource");
+               }
+               if (singleTransactionMode) {
+                   connection.setTransactionIsolation(Connection.TRANSACTION_NONE);
+               }
+               return connection;
+           } catch (SQLException e) {
+               throw new FlywayException("Unable to obtain Jdbc connection from DataSource", e);
+           }
+       }
+
 
     /**
      * Safely closes this connection. This method never fails.

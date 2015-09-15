@@ -75,12 +75,12 @@ public class TransactionTemplate {
         boolean oldAutocommit = true;
         try {
             oldAutocommit = connection.getAutoCommit();
-            connection.setTransactionIsolation(0);
+//            connection.setTransactionIsolation(0);
             LOG.debug("Autocommit was " + oldAutocommit);
             connection.setAutoCommit(false);
             LOG.debug("Autocommit was temporarily set to " + connection.getAutoCommit());
             LOG.debug("Beginning transaction..."+ transactionCallback.hashCode());
-            connection.createStatement().execute("set transaction isolation level no COMMIT");
+//            connection.createStatement().execute("set transaction isolation level no COMMIT");
             T result = transactionCallback.doInTransaction();
             if (commitOnSuccess) {
                 connection.commit();

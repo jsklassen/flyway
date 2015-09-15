@@ -1052,14 +1052,12 @@ public class Flyway {
                 final Integer success = new TransactionTemplate(connectionMetaDataTable, true, false).execute(new TransactionCallback<Integer>() {
                     public Integer doInTransaction() {
                         int successful = 0;
-                        try{
-//                        connectionMetaDataTable.setTransactionIsolation(0);
-//                        connectionUserObjects.setTransactionIsolation(0);
-                            connectionUserObjects.createStatement().execute("set transaction isolation level no COMMIT;");
-                        }
-                        catch (SQLException e){
-
-                        }
+//                        try{
+//                            connectionUserObjects.createStatement().execute("set transaction isolation level no COMMIT;");
+//                        }
+//                        catch (SQLException e){
+//
+//                        }
 
 
                         boolean commitOnSuccess = !singleTransactionMode;
@@ -1490,8 +1488,8 @@ public class Flyway {
                 throw new FlywayException("Unable to connect to the database. Configure the url, user and password!");
             }
 
-            connectionMetaDataTable = JdbcUtils.openConnection(dataSource);
-            connectionUserObjects = JdbcUtils.openConnection(dataSource);
+            connectionMetaDataTable = JdbcUtils.openConnection(dataSource, singleTransactionMode);
+            connectionUserObjects = JdbcUtils.openConnection(dataSource, singleTransactionMode);
 
             DbSupport dbSupport = DbSupportFactory.createDbSupport(connectionMetaDataTable, !dbConnectionInfoPrinted);
             dbConnectionInfoPrinted = true;
